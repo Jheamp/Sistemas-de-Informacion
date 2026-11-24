@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ERP-CRM · Práctica Académica</title>
+  <style>
+    /* ── RESET & BASE ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --card:      #22263a;
+      --border:    #2e3350;
+      --accent:    #5b8dee;
+      --accent2:   #3ecf8e;
+      --warn:      #f0a500;
+      --danger:    #e55353;
+      --text:      #e8eaf0;
+      --muted:     #8890ab;
+      --radius:    8px;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text);
+           min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* ── LAYOUT ───────────────────────────────────────────── */
+    header { background: var(--surface); border-bottom: 1px solid var(--border);
+             padding: 0 1.5rem; display: flex; align-items: center; gap: 1rem;
+             height: 56px; position: sticky; top: 0; z-index: 100; }
+    header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
+    header h1 span { color: var(--accent); }
+    nav { display: flex; gap: .25rem; margin-left: auto; }
+    nav button {
+      background: none; border: none; color: var(--muted); padding: .4rem .9rem;
+      border-radius: var(--radius); cursor: pointer; font-size: .85rem; transition: all .2s;
+    }
+    nav button:hover, nav button.active { background: var(--accent); color: #fff; }
+
+    main { flex: 1; padding: 1.5rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+    /* ── CARDS ────────────────────────────────────────────── */
+    .card { background: var(--card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem;
+               display: flex; align-items: center; gap: .5rem; }
+
+    /* ── DASHBOARD KPI ────────────────────────────────────── */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+                gap: 1rem; margin-bottom: 1.5rem; }
+    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+           padding: 1rem; text-align: center; }
+    .kpi .val { font-size: 2rem; font-weight: 700; color: var(--accent); }
+    .kpi .lbl { font-size: .75rem; color: var(--muted); margin-top: .25rem; }
+
+    /* ── TABLA ────────────────────────────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th { background: var(--surface); color: var(--muted); text-align: left;
+         padding: .6rem .75rem; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: .55rem .75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(91,141,238,.06); }
+
+    /* ── BADGES ───────────────────────────────────────────── */
+    .badge { display: inline-block; padding: .15rem .55rem; border-radius: 20px;
+             font-size: .72rem; font-weight: 600; }
+    .badge.activo    { background:#1a3a2a; color: var(--accent2); }
+    .badge.prospecto { background:#2a2a1a; color: var(--warn); }
+    .badge.inactivo  { background:#2a1a1a; color: var(--danger); }
+    .badge.pagada    { background:#1a3a2a; color: var(--accent2); }
+    .badge.pendiente { background:#2a2a1a; color: var(--warn); }
+    .badge.cancelada { background:#2a1a1a; color: var(--danger); }
+
+    /* ── FORMULARIOS ──────────────────────────────────────── */
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: .75rem; margin-bottom: .75rem; }
+    input, select, textarea {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      padding: .5rem .75rem; border-radius: var(--radius); width: 100%;
+      font-family: var(--font); font-size: .85rem; transition: border-color .2s;
+    }
+    input:focus, select:focus, textarea:focus
+      { outline: none; border-color: var(--accent); }
+    label { font-size: .78rem; color: var(--muted); display: block; margin-bottom: .25rem; }
+    .btn { padding: .5rem 1.1rem; border: none; border-radius: var(--radius); cursor: pointer;
+           font-size: .85rem; font-weight: 600; transition: opacity .2s; }
+    .btn:hover { opacity: .85; }
+    .btn-primary  { background: var(--accent);  color: #fff; }
+    .btn-success  { background: var(--accent2); color: #0f1117; }
+    .btn-danger   { background: var(--danger);  color: #fff; }
+    .btn-sm { padding: .25rem .6rem; font-size: .75rem; }
+
+    /* ── ALERTAS ──────────────────────────────────────────── */
+    .alert { padding: .75rem 1rem; border-radius: var(--radius); margin-bottom: 1rem;
+             font-size: .85rem; }
+    .alert-ok  { background: #1a3a2a; color: var(--accent2); border: 1px solid #2a5a3a; }
+    .alert-err { background: #3a1a1a; color: var(--danger);  border: 1px solid #5a2a2a; }
+
+    /* ── VISTAS ───────────────────────────────────────────── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;
+                     color: var(--accent); display: flex; align-items: center; gap: .5rem; }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border);
+               border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MODAL ────────────────────────────────────────────── */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+                     z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+             padding: 1.5rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+    .modal h3 { margin-bottom: 1rem; font-size: 1rem; }
+    .modal-actions { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1rem; }
+
+    footer { text-align: center; padding: 1rem; color: var(--muted); font-size: .75rem;
+             border-top: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════ -->
+<header>
+  <h1>🏢 <span>ERP</span>-CRM</h1>
+  <nav>
+    <button class="active" onclick="showView('dashboard')">📊 Dashboard</button>
+    <button onclick="showView('clientes')">👥 Clientes</button>
+    <button onclick="showView('interacciones')">💬 CRM</button>
+    <button onclick="showView('productos')">📦 Productos</button>
+    <button onclick="showView('ventas')">🛒 Ventas</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ═══════════════════════════════════════════════════════
+       DASHBOARD
+  ════════════════════════════════════════════════════════ -->
+  <div id="v-dashboard" class="view active">
+    <div class="section-title">📊 Resumen Ejecutivo</div>
+    <div id="kpi-grid" class="kpi-grid">
+      <div class="kpi"><div class="spinner"></div><div class="lbl">Cargando...</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <div class="card">
+        <h2>🏆 Últimas Ventas</h2>
+        <div id="dash-ventas" class="table-wrap"><div class="spinner"></div></div>
+      </div>
+      <div class="card">
+        <h2>💬 Últimas Interacciones</h2>
+        <div id="dash-crm" class="table-wrap"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       CLIENTES
+  ════════════════════════════════════════════════════════ -->
+  <div id="v-clientes" class="view">
+    <div class="section-title">👥 Clientes</div>
+
+    <div class="card">
+      <h2>➕ Nuevo Cliente</h2>
+      <div class="form-row">
+        <div><label>Nombre *</label><input id="c-nombre" placeholder="Nombre completo"/></div>
+        <div><label>Empresa</label><input id="c-empresa" placeholder="Razón social"/></div>
+        <div><label>Email *</label><input id="c-email" type="email" placeholder="correo@ejemplo.com"/></div>
+        <div><label>Teléfono</label><input id="c-tel" placeholder="+52-55-0000"/></div>
+        <div>
+          <label>Estado</label>
+          <select id="c-estado">
+            <option value="prospecto">Prospecto</option>
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+          </select>
+        </div>
+      </div>
+      <div id="alert-cliente"></div>
+      <button class="btn btn-primary" onclick="crearCliente()">Guardar Cliente</button>
+    </div>
+
+    <div class="card">
+      <h2>📋 Listado de Clientes</h2>
+      <div class="table-wrap">
+        <table id="tbl-clientes">
+          <thead><tr><th>ID</th><th>Nombre</th><th>Empresa</th><th>Email</th><th>Teléfono</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody><tr><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       INTERACCIONES CRM
+  ════════════════════════════════════════════════════════ -->
+  <div id="v-interacciones" class="view">
+    <div class="section-title">💬 Seguimiento CRM</div>
+
+    <div class="card">
+      <h2>➕ Registrar Interacción</h2>
+      <div class="form-row">
+        <div>
+          <label>Cliente *</label>
+          <select id="i-cliente"></select>
+        </div>
+        <div>
+          <label>Tipo *</label>
+          <select id="i-tipo">
+            <option value="llamada">📞 Llamada</option>
+            <option value="email">📧 Email</option>
+            <option value="reunion">🤝 Reunión</option>
+            <option value="demo">🖥️ Demo</option>
+            <option value="otro">➕ Otro</option>
+          </select>
+        </div>
+      </div>
+      <div><label>Notas</label><textarea id="i-notas" rows="3" placeholder="Detalles de la interacción..."></textarea></div>
+      <br/>
+      <div id="alert-interaccion"></div>
+      <button class="btn btn-primary" onclick="crearInteraccion()">Registrar</button>
+    </div>
+
+    <div class="card">
+      <h2>📋 Historial de Interacciones</h2>
+      <div class="table-wrap">
+        <table id="tbl-interacciones">
+          <thead><tr><th>ID</th><th>Cliente</th><th>Tipo</th><th>Notas</th><th>Fecha</th></tr></thead>
+          <tbody><tr><td colspan="5"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PRODUCTOS
+  ════════════════════════════════════════════════════════ -->
+  <div id="v-productos" class="view">
+    <div class="section-title">📦 Inventario de Productos</div>
+
+    <div class="card">
+      <h2>➕ Nuevo Producto</h2>
+      <div class="form-row">
+        <div><label>Nombre *</label><input id="p-nombre" placeholder="Nombre del producto"/></div>
+        <div><label>Categoría</label><input id="p-cat" placeholder="Electrónica, Redes..."/></div>
+        <div><label>Precio *</label><input id="p-precio" type="number" step="0.01" placeholder="0.00"/></div>
+        <div><label>Stock inicial</label><input id="p-stock" type="number" placeholder="0"/></div>
+      </div>
+      <div><label>Descripción</label><textarea id="p-desc" rows="2" placeholder="Descripción del producto..."></textarea></div>
+      <br/>
+      <div id="alert-producto"></div>
+      <button class="btn btn-primary" onclick="crearProducto()">Guardar Producto</button>
+    </div>
+
+    <div class="card">
+      <h2>📋 Inventario Actual</h2>
+      <div class="table-wrap">
+        <table id="tbl-productos">
+          <thead><tr><th>ID</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+          <tbody><tr><td colspan="6"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       VENTAS
+  ════════════════════════════════════════════════════════ -->
+  <div id="v-ventas" class="view">
+    <div class="section-title">🛒 Ventas</div>
+
+    <div class="card">
+      <h2>➕ Nueva Venta</h2>
+      <div class="form-row">
+        <div>
+          <label>Cliente</label>
+          <select id="v-cliente"><option value="">— Sin cliente —</option></select>
+        </div>
+        <div>
+          <label>Estado</label>
+          <select id="v-estado">
+            <option value="pendiente">Pendiente</option>
+            <option value="pagada">Pagada</option>
+          </select>
+        </div>
+      </div>
+      <div id="alert-venta"></div>
+      <button class="btn btn-primary" onclick="crearVenta()">Crear Venta</button>
+    </div>
+
+    <div class="card">
+      <h2>📋 Ventas Registradas</h2>
+      <div class="table-wrap">
+        <table id="tbl-ventas">
+          <thead><tr><th>ID</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+          <tbody><tr><td colspan="6"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══ MODAL DETALLE VENTA ══════════════════════════════════ -->
+<div id="modal-detalle" class="modal-overlay">
+  <div class="modal">
+    <h3>🛒 Agregar Ítem a Venta <span id="modal-venta-id"></span></h3>
+    <div class="form-row">
+      <div>
+        <label>Producto *</label>
+        <select id="d-producto"></select>
+      </div>
+      <div><label>Cantidad *</label><input id="d-cantidad" type="number" min="1" value="1"/></div>
+      <div><label>Precio Unitario *</label><input id="d-precio" type="number" step="0.01" placeholder="0.00"/></div>
+    </div>
+    <div id="alert-detalle"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="cerrarModal()" style="background:var(--border)">Cancelar</button>
+      <button class="btn btn-success" onclick="agregarDetalle()">Agregar Ítem</button>
+    </div>
+    <hr style="border-color:var(--border);margin:1rem 0"/>
+    <h4 style="margin-bottom:.75rem;font-size:.9rem;">Ítems de esta venta:</h4>
+    <div id="detalle-lista" class="table-wrap"></div>
+  </div>
+</div>
+
+<!-- ══ MODAL EDITAR CLIENTE ═════════════════════════════════ -->
+<div id="modal-cliente" class="modal-overlay">
+  <div class="modal">
+    <h3>✏️ Editar Cliente</h3>
+    <input type="hidden" id="edit-c-id"/>
+    <div class="form-row">
+      <div><label>Nombre</label><input id="edit-c-nombre"/></div>
+      <div><label>Empresa</label><input id="edit-c-empresa"/></div>
+      <div><label>Email</label><input id="edit-c-email" type="email"/></div>
+      <div><label>Teléfono</label><input id="edit-c-tel"/></div>
+      <div>
+        <label>Estado</label>
+        <select id="edit-c-estado">
+          <option value="prospecto">Prospecto</option>
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+        </select>
+      </div>
+    </div>
+    <div id="alert-edit-cliente"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="document.getElementById('modal-cliente').classList.remove('open')" style="background:var(--border)">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarEdicionCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<footer>ERP-CRM · Práctica Académica · FastAPI + PostgreSQL + HTML5</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   CONFIGURACIÓN
+═══════════════════════════════════════════════════════════ */
+const API = '';   // mismo origen
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const fmt = n  => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n||0);
+const fmtDate = d => d ? new Date(d).toLocaleDateString('es-MX') : '—';
+const badge = (v,cls) => `<span class="badge ${cls||v}">${v}</span>`;
+
+function showAlert(elId, msg, ok=true) {
+  const el = $(elId);
+  if (!el) return;
+  el.innerHTML = `<div class="alert ${ok?'alert-ok':'alert-err'}">${msg}</div>`;
+  setTimeout(() => { if(el) el.innerHTML = ''; }, 4000);
+}
+
+async function api(path, opts={}) {
+  const r = await fetch(API + path, {
+    headers: {'Content-Type':'application/json'},
+    ...opts
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(()=>({detail:'Error desconocido'}));
+    throw new Error(err.detail || JSON.stringify(err));
+  }
+  if (r.status === 204) return null;
+  return r.json();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NAVEGACIÓN
+═══════════════════════════════════════════════════════════ */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  $(`v-${name}`).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => {
+    if (b.textContent.toLowerCase().includes(name.substring(0,4))) b.classList.add('active');
+  });
+  loaders[name]?.();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════════════════════ */
+async function loadDashboard() {
+  const d = await api('/api/dashboard/resumen').catch(()=>null);
+  if (!d) return;
+  $('kpi-grid').innerHTML = `
+    <div class="kpi"><div class="val">${d.total_clientes}</div><div class="lbl">Clientes totales</div></div>
+    <div class="kpi"><div class="val">${d.clientes_activos}</div><div class="lbl">Clientes activos</div></div>
+    <div class="kpi"><div class="val">${d.prospectos}</div><div class="lbl">Prospectos</div></div>
+    <div class="kpi"><div class="val">${d.total_productos}</div><div class="lbl">Productos</div></div>
+    <div class="kpi"><div class="val">${d.unidades_en_stock}</div><div class="lbl">Unidades en stock</div></div>
+    <div class="kpi"><div class="val">${d.total_ventas}</div><div class="lbl">Ventas registradas</div></div>
+    <div class="kpi"><div class="val">${fmt(d.ingresos_pagados)}</div><div class="lbl">Ingresos cobrados</div></div>
+    <div class="kpi"><div class="val">${d.total_interacciones}</div><div class="lbl">Interacciones CRM</div></div>
+  `;
+
+  // Últimas ventas
+  const ventas = await api('/api/ventas').catch(()=>[]);
+  $('dash-ventas').innerHTML = `<table>
+    <thead><tr><th>#</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead>
+    <tbody>${ventas.slice(0,5).map(v=>`<tr>
+      <td>${v.id}</td><td>${v.cliente_nombre||'—'}</td>
+      <td>${fmt(v.total)}</td><td>${badge(v.estado)}</td>
+    </tr>`).join('')}</tbody></table>`;
+
+  // Últimas interacciones
+  const ints = await api('/api/interacciones').catch(()=>[]);
+  $('dash-crm').innerHTML = `<table>
+    <thead><tr><th>Cliente</th><th>Tipo</th><th>Fecha</th></tr></thead>
+    <tbody>${ints.slice(0,5).map(i=>`<tr>
+      <td>${i.cliente_nombre}</td><td>${i.tipo}</td><td>${fmtDate(i.fecha)}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CLIENTES
+═══════════════════════════════════════════════════════════ */
+async function loadClientes() {
+  const rows = await api('/api/clientes').catch(()=>[]);
+  const tb = $('tbl-clientes').querySelector('tbody');
+  tb.innerHTML = rows.map(c=>`<tr>
+    <td>${c.id}</td>
+    <td><strong>${c.nombre}</strong></td>
+    <td>${c.empresa||'—'}</td>
+    <td>${c.email}</td>
+    <td>${c.telefono||'—'}</td>
+    <td>${badge(c.estado)}</td>
+    <td>
+      <button class="btn btn-sm btn-primary" onclick="abrirEditCliente(${c.id})">✏️</button>
+      <button class="btn btn-sm btn-danger"  onclick="eliminarCliente(${c.id})">🗑️</button>
+    </td>
+  </tr>`).join('') || '<tr><td colspan="7" style="color:var(--muted);text-align:center">Sin clientes</td></tr>';
+}
+
+async function crearCliente() {
+  try {
+    await api('/api/clientes', { method:'POST', body: JSON.stringify({
+      nombre: $('c-nombre').value,
+      empresa: $('c-empresa').value || null,
+      email: $('c-email').value,
+      telefono: $('c-tel').value || null,
+      estado: $('c-estado').value,
+    })});
+    showAlert('alert-cliente', '✅ Cliente creado exitosamente.');
+    ['c-nombre','c-empresa','c-email','c-tel'].forEach(id => $(id).value='');
+    loadClientes();
+  } catch(e) {
+    showAlert('alert-cliente', '❌ ' + e.message, false);
+  }
+}
+
+async function abrirEditCliente(id) {
+  const c = await api(`/api/clientes/${id}`).catch(()=>null);
+  if (!c) return;
+  $('edit-c-id').value     = c.id;
+  $('edit-c-nombre').value = c.nombre;
+  $('edit-c-empresa').value= c.empresa||'';
+  $('edit-c-email').value  = c.email;
+  $('edit-c-tel').value    = c.telefono||'';
+  $('edit-c-estado').value = c.estado;
+  $('modal-cliente').classList.add('open');
+}
+
+async function guardarEdicionCliente() {
+  const id = $('edit-c-id').value;
+  try {
+    await api(`/api/clientes/${id}`, { method:'PUT', body: JSON.stringify({
+      nombre: $('edit-c-nombre').value,
+      empresa: $('edit-c-empresa').value||null,
+      email: $('edit-c-email').value,
+      telefono: $('edit-c-tel').value||null,
+      estado: $('edit-c-estado').value,
+    })});
+    $('modal-cliente').classList.remove('open');
+    showAlert('alert-cliente', '✅ Cliente actualizado.');
+    loadClientes();
+  } catch(e) {
+    showAlert('alert-edit-cliente', '❌ '+e.message, false);
+  }
+}
+
+async function eliminarCliente(id) {
+  if (!confirm(`¿Eliminar cliente #${id}?`)) return;
+  try {
+    await api(`/api/clientes/${id}`, { method:'DELETE' });
+    loadClientes();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   INTERACCIONES
+═══════════════════════════════════════════════════════════ */
+async function loadInteracciones() {
+  const [rows, clientes] = await Promise.all([
+    api('/api/interacciones').catch(()=>[]),
+    api('/api/clientes').catch(()=>[])
+  ]);
+
+  // Poblar select
+  $('i-cliente').innerHTML = clientes.map(c=>
+    `<option value="${c.id}">${c.nombre}</option>`).join('');
+
+  const emojiTipo = {llamada:'📞',email:'📧',reunion:'🤝',demo:'🖥️',otro:'➕'};
+  const tb = $('tbl-interacciones').querySelector('tbody');
+  tb.innerHTML = rows.map(i=>`<tr>
+    <td>${i.id}</td>
+    <td>${i.cliente_nombre}</td>
+    <td>${emojiTipo[i.tipo]||''} ${i.tipo}</td>
+    <td style="max-width:300px;white-space:normal">${i.notas||'—'}</td>
+    <td>${fmtDate(i.fecha)}</td>
+  </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted);text-align:center">Sin interacciones</td></tr>';
+}
+
+async function crearInteraccion() {
+  try {
+    await api('/api/interacciones', { method:'POST', body: JSON.stringify({
+      cliente_id: parseInt($('i-cliente').value),
+      tipo: $('i-tipo').value,
+      notas: $('i-notas').value||null,
+    })});
+    showAlert('alert-interaccion', '✅ Interacción registrada.');
+    $('i-notas').value = '';
+    loadInteracciones();
+  } catch(e) {
+    showAlert('alert-interaccion', '❌ '+e.message, false);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PRODUCTOS
+═══════════════════════════════════════════════════════════ */
+async function loadProductos() {
+  const rows = await api('/api/productos').catch(()=>[]);
+  const tb = $('tbl-productos').querySelector('tbody');
+  tb.innerHTML = rows.map(p=>{
+    const stockCls = p.stock < 5 ? 'color:var(--danger);font-weight:700' :
+                     p.stock < 15 ? 'color:var(--warn)' : '';
+    return `<tr>
+      <td>${p.id}</td>
+      <td><strong>${p.nombre}</strong><br/><small style="color:var(--muted)">${p.descripcion||''}</small></td>
+      <td>${p.categoria||'—'}</td>
+      <td>${fmt(p.precio)}</td>
+      <td style="${stockCls}">${p.stock}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="eliminarProducto(${p.id})">🗑️</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center">Sin productos</td></tr>';
+}
+
+async function crearProducto() {
+  try {
+    await api('/api/productos', { method:'POST', body: JSON.stringify({
+      nombre: $('p-nombre').value,
+      descripcion: $('p-desc').value||null,
+      precio: parseFloat($('p-precio').value),
+      stock: parseInt($('p-stock').value)||0,
+      categoria: $('p-cat').value||null,
+    })});
+    showAlert('alert-producto','✅ Producto creado.');
+    ['p-nombre','p-desc','p-precio','p-stock','p-cat'].forEach(id=>$(id).value='');
+    loadProductos();
+  } catch(e) {
+    showAlert('alert-producto','❌ '+e.message, false);
+  }
+}
+
+async function eliminarProducto(id) {
+  if (!confirm(`¿Eliminar producto #${id}?`)) return;
+  try {
+    await api(`/api/productos/${id}`,{method:'DELETE'});
+    loadProductos();
+  } catch(e){ alert('Error: '+e.message); }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   VENTAS
+═══════════════════════════════════════════════════════════ */
+let _currentVentaId = null;
+
+async function loadVentas() {
+  const [ventas, clientes] = await Promise.all([
+    api('/api/ventas').catch(()=>[]),
+    api('/api/clientes').catch(()=>[])
+  ]);
+
+  // Poblar selects
+  $('v-cliente').innerHTML = '<option value="">— Sin cliente —</option>' +
+    clientes.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+
+  const tb = $('tbl-ventas').querySelector('tbody');
+  tb.innerHTML = ventas.map(v=>`<tr>
+    <td>${v.id}</td>
+    <td>${v.cliente_nombre||'—'}</td>
+    <td><strong>${fmt(v.total)}</strong></td>
+    <td>${badge(v.estado)}</td>
+    <td>${fmtDate(v.fecha_venta)}</td>
+    <td>
+      <button class="btn btn-sm btn-success" onclick="abrirDetalle(${v.id})">➕ Ítem</button>
+    </td>
+  </tr>`).join('') || '<tr><td colspan="6" style="color:var(--muted);text-align:center">Sin ventas</td></tr>';
+}
+
+async function crearVenta() {
+  try {
+    const cli = $('v-cliente').value;
+    await api('/api/ventas', { method:'POST', body: JSON.stringify({
+      cliente_id: cli ? parseInt(cli) : null,
+      estado: $('v-estado').value,
+    })});
+    showAlert('alert-venta','✅ Venta creada. Ahora agrega ítems con "➕ Ítem".');
+    loadVentas();
+  } catch(e) {
+    showAlert('alert-venta','❌ '+e.message, false);
+  }
+}
+
+async function abrirDetalle(ventaId) {
+  _currentVentaId = ventaId;
+  $('modal-venta-id').textContent = `#${ventaId}`;
+  $('alert-detalle').innerHTML = '';
+
+  // Poblar productos en el modal
+  const prods = await api('/api/productos').catch(()=>[]);
+  $('d-producto').innerHTML = prods.map(p=>
+    `<option value="${p.id}" data-precio="${p.precio}">${p.nombre} (stock: ${p.stock})</option>`
+  ).join('');
+
+  // Escuchar cambio de producto para autocompletar precio
+  $('d-producto').onchange = () => {
+    const opt = $('d-producto').selectedOptions[0];
+    $('d-precio').value = opt ? opt.dataset.precio : '';
+  };
+  if (prods.length > 0) $('d-precio').value = prods[0].precio;
+
+  // Cargar ítems actuales
+  await refreshDetalleModal(ventaId);
+  $('modal-detalle').classList.add('open');
+}
+
+async function refreshDetalleModal(ventaId) {
+  const v = await api(`/api/ventas/${ventaId}`).catch(()=>null);
+  if (!v) return;
+  const detalles = v.detalles || [];
+  $('detalle-lista').innerHTML = detalles.length ? `<table>
+    <thead><tr><th>Producto</th><th>Cant.</th><th>Precio U.</th><th>Subtotal</th></tr></thead>
+    <tbody>${detalles.map(d=>`<tr>
+      <td>${d.producto_nombre}</td>
+      <td>${d.cantidad}</td>
+      <td>${fmt(d.precio_unitario)}</td>
+      <td>${fmt(d.subtotal)}</td>
+    </tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="3" style="text-align:right;font-weight:700">Total:</td>
+    <td style="font-weight:700">${fmt(v.total)}</td></tr></tfoot>
+  </table>` : '<p style="color:var(--muted);font-size:.85rem">Sin ítems aún.</p>';
+}
+
+async function agregarDetalle() {
+  try {
+    await api(`/api/ventas/${_currentVentaId}/detalle`, { method:'POST', body: JSON.stringify({
+      producto_id: parseInt($('d-producto').value),
+      cantidad: parseInt($('d-cantidad').value),
+      precio_unitario: parseFloat($('d-precio').value),
+    })});
+    showAlert('alert-detalle','✅ Ítem agregado. Stock actualizado automáticamente.', true);
+    await refreshDetalleModal(_currentVentaId);
+    loadVentas();     // refrescar total en la tabla
+  } catch(e) {
+    showAlert('alert-detalle','❌ '+e.message, false);
+  }
+}
+
+function cerrarModal() {
+  $('modal-detalle').classList.remove('open');
+  _currentVentaId = null;
+  loadVentas();
+}
+
+// Cerrar modales al hacer clic fuera
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
+});
+
+/* ═══════════════════════════════════════════════════════════
+   CARGADORES POR VISTA
+═══════════════════════════════════════════════════════════ */
+const loaders = {
+  dashboard: loadDashboard,
+  clientes: loadClientes,
+  interacciones: loadInteracciones,
+  productos: loadProductos,
+  ventas: loadVentas,
+};
+
+// Cargar dashboard al inicio
+loadDashboard();
+</script>
+</body>
+</html>
